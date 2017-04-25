@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 #define SETS 8192
@@ -23,18 +24,66 @@ typedef struct cachentry cachentry;
 
 
 int main(int argc, char *argv[]) {
+  int get_oldest(cachentry[]);
+  cachentry * cche_getset(cachentry[], int);
+  void printset(cachentry[], int);
+  
   int cche_addentry(cachentry[], int, int);
   cachentry * initialize_cache();
-  int address = 0x11100030, address2 = 0x15100030, added;
+  int address = 0x11100030, address2 = 0x15100030, address3 = 0x17100030, added;
 
   cachentry * cache = initialize_cache();
 
   added = cche_addentry(cache, address, 2);
   added = cche_addentry(cache, address2, 2);
+  added = cche_addentry(cache, address3, 1);
 
   printf("Added: %d; Tag: %06x\n", added, cache[2].tag);
+  printf("Oldest: %d\n", get_oldest(cche_getset(cache, address)));
+  printset(cache, 0);
 
   exit(0);
+}
+
+
+void printset(cachentry cache[], int setindex) {
+  char * entrytos(cachentry);
+  int i = setindex * LINES;
+  
+  printf("{\n");
+  for (; i < ((setindex+1) * LINES); i ++) {
+    printf("%s\n", entrytos(cache[i]));
+  }
+  printf("}\n");
+}
+
+
+char * entrytos(cachentry entry) {
+  char validstr[3], agestr[3], tagstr[9],
+  validlabel[] = "\t{\n\t\tValid: ",
+  agelabel[] = "\n\t\tAge: ",
+  taglabel[] = "\n\t\tTag: ",
+  end[] = "\n\t},\n",
+  *fullstr;
+  
+  fullstr = malloc(75*sizeof(char));
+  
+  sprintf(validstr, "%02x", entry.valid);
+  sprintf(agestr, "%02x", entry.age);
+  sprintf(tagstr, "%08x", entry.tag);
+  
+  strcat(fullstr, validlabel);
+  strcat(fullstr, validstr);
+  
+  strcat(fullstr, agelabel);
+  strcat(fullstr, agestr);
+  
+  strcat(fullstr, taglabel);
+  strcat(fullstr, tagstr);
+  
+  strcat(fullstr, end);
+  
+  return fullstr;
 }
 
 
@@ -50,7 +99,6 @@ int main(int argc, char *argv[]) {
  */
 int get_oldest(cachentry set[]) {
   int blockindex = 0, oldest_index = 0;
-  cachentry crnt_entry;
 
   for (; blockindex < LINES; blockindex ++) {
     if (set[blockindex].age > set[oldest_index].age) {
@@ -152,7 +200,7 @@ cachentry * cche_getset(cachentry cache[], int address) {
 int cche_addentry(cachentry cache[], int address, int offset) {
   cachentry * cche_getset(cachentry[], int);
   cachentry * initialize_cache_entry(int);
-  void incr_set(cachentry[]);
+  void incr_set(cachentry[], int);
   cachentry *set, *entry_toadd;
 
   set = cche_getset(cache, address);
@@ -164,22 +212,26 @@ int cche_addentry(cachentry cache[], int address, int offset) {
   if (set[offset].age == 0) {
     entry_toadd = initialize_cache_entry(address);
     set[offset] = *entry_toadd;
-    incr_set(set);
+    incr_set(set, offset);
     return 1;
   }
   return 0;
 }
 
 
-/* Problem: Increment the age of the first 4 entries in set by 1.
+/* Problem: Increment the age of the first 4 entries in set by 1. Ignore
+ * the entry at the index exclude because it's assumed that that entry has just
+ * been added so it's age is correct. Just increment the rest of the entries
  *
  * Solution: Iterate through set and increment the age of the entry in each
  * iteration.
  */
-void incr_set(cachentry set[]) {
+void incr_set(cachentry set[], int exclude) {
   int i = 0;
   for (; i < LINES; i ++) {
-    set[i].age ++;
+    if (i != exclude && set[i].age > 0) {
+      set[i].age ++;
+    }
   }
 }
 
