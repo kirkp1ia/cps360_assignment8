@@ -38,6 +38,63 @@ int main(int argc, char *argv[]) {
 }
 
 
+/* Problem: Return the index of the oldest entry in the set based on the age of
+ * each entry. The oldest entry will be returned.
+ *
+ * Returns: the index of the oldest entry in the set.
+ *
+ * Solution: set the oldest entry to the first entry in the set. Then, iterate
+ * through the set. Upon each entry in iteration, if its age is older than
+ * the entry at oldest_index at the time, reset oldest_index to the current
+ * iteration index. After the loop is done, return the value of oldest_index.
+ */
+int get_oldest(cachentry set[]) {
+  int blockindex = 0, oldest_index = 0;
+  cachentry crnt_entry;
+
+  for (; blockindex < LINES; blockindex ++) {
+    if (set[blockindex].age > set[oldest_index].age) {
+      oldest_index = blockindex;
+    }
+  }
+
+  return oldest_index;
+}
+
+
+/* Problem: Return the index of the oldest entry in the set based on a random
+ * number between 0 and the size of each set (LINES).
+ *
+ * Returns: the index of the entry in the set by random to replace.
+ *
+ * Solution:
+ *    TODO: Implement with random number generator
+ */
+int get_random(cachentry set[]) {
+  return 0;
+}
+
+
+/* Problem: Replace the entry at the offset of set with the entry in
+ * entry_toadd.
+ *
+ * Returns: 1 if the entry was successfuly added. 0 if otherwise.
+ *
+ * Solution: If offset would cause the entry to replace an entry not contained
+ * in the set (that is, offset is >= the value of LINES), 0 is returned.
+ * Otherwise, the data in set at offset is set to entry_toadd which will
+ * any current entry contained in that slot.
+ */
+int replace_entry(cachentry set[], int offset, cachentry entry_toadd) {
+  if (offset >= LINES) {
+    set[offset] = entry_toadd;
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+
 /* Problem: Create an array of cachentry structs that have an age of 0, tag of
  * 0, and valid of 0.
  *
@@ -95,16 +152,35 @@ cachentry * cche_getset(cachentry cache[], int address) {
 int cche_addentry(cachentry cache[], int address, int offset) {
   cachentry * cche_getset(cachentry[], int);
   cachentry * initialize_cache_entry(int);
+  void incr_set(cachentry[]);
   cachentry *set, *entry_toadd;
 
   set = cche_getset(cache, address);
 
+  if (offset >= LINES) {
+    return 0;
+  }
+
   if (set[offset].age == 0) {
     entry_toadd = initialize_cache_entry(address);
     set[offset] = *entry_toadd;
+    incr_set(set);
     return 1;
   }
   return 0;
+}
+
+
+/* Problem: Increment the age of the first 4 entries in set by 1.
+ *
+ * Solution: Iterate through set and increment the age of the entry in each
+ * iteration.
+ */
+void incr_set(cachentry set[]) {
+  int i = 0;
+  for (; i < LINES; i ++) {
+    set[i].age ++;
+  }
 }
 
 
@@ -115,12 +191,18 @@ int cche_addentry(cachentry cache[], int address, int offset) {
  *
  * Solution: use addr_gettag() to isolate the tag from address and set it as the
  * entry's tag. Set age to 1 to show that it is the most recent entry. The
- * oldest entry in a set will have an age of 4.
+ * oldest entry in a set will have an age of 4. However, we assume here that
+ * when this entry is added, all entries in the set will have their age
+ * incremented by 1, so this entry's age starts at 1 less than actual so that it
+ * is correct after incrementation.
+ *
+ * Limitations: If the set is not incremented in age, this entry's age will be
+ * 1 less than its actual age.
  */
 cachentry * initialize_cache_entry(int address) {
   int addr_gettag(int);
   cachentry * entry = malloc(sizeof(cachentry));
-  entry->age = 0x01;
+  entry->age = 0x00;
   entry->valid = 0x01;
   entry->tag = addr_gettag(address);
   return entry;
