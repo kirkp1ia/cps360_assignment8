@@ -13,7 +13,7 @@ LDFLAGS =
 CC	= gcc
 LD	= gcc
 
-PROG	= $(A)
+PROG	= nwaycache
 CEESRCS = $(A).c
 
 OBJS    = $(A).o
